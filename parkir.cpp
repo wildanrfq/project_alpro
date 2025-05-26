@@ -1,15 +1,14 @@
 #include <iostream>
-#include <algorithm>
-#include <cctype>
-#include <cmath>
-#include <ctime>
-#include <fstream>
-#include <iomanip>
-#include <regex>
-#include <vector>
-#include <sstream>
-#include <termios.h>
-#include <unistd.h>
+#include <algorithm> // untuk fungsi transform string
+#include <cctype>    // untuk fungsi tolower dan toupper pada string
+#include <cmath>     // untuk fungsi ceil / pembulatan ke atas
+#include <ctime>     // untuk fungsi dan datatipe yang berhubungan dengan waktu
+#include <fstream>   // untuk fungsi yang berhubungan dengan operasi file
+#include <iomanip>   // untuk fungsi formatting seperti setw setfill
+#include <regex>     // untuk fungsi regular expression / mencari pola dan ekstrak dalam string
+#include <sstream>   // untuk fungsi stringstream, istringstream, dan ostringstream
+#include <unistd.h>  // untuk fungsi sleep() / delay jeda
+#include <vector>    // untuk penggunaan vector
 
 using namespace std;
 
@@ -34,8 +33,10 @@ void lanjut()
     cout << endl
          << "Press Enter untuk melanjutkan...";
     cin.get();
-    system("clear");
+    system("cls");
 }
+
+// fungsi fungsi untuk mengubah string
 
 void make_lower(string &input)
 {
@@ -59,6 +60,10 @@ string upper(string input)
     return input;
 }
 
+// batas fungsi fungsi untuk mengubah string
+
+// fungsi fungsi untuk menghias output
+
 void garis(int length = 60, char symbol = '-')
 {
     cout << setfill(symbol) << setw(length) << "" << setfill(' ') << endl;
@@ -77,7 +82,7 @@ string center(const string &s, int width = 58)
 
 void header_tabel(const string &title, int width = 60)
 {
-    system("clear");
+    system("cls");
     cout << endl;
     garis(width, '=');
     cout << "|" << center(title, width - 2) << "|" << endl;
@@ -89,6 +94,8 @@ void baris_tabel(const string &label, const string &value, int width = 60)
     cout << "| " << setw(20) << left << label << ": " << setw(width - 25) << left << value << "|" << endl;
 }
 
+// batas fungsi fungsi untuk menghias output
+
 bool login(bool &admin)
 {
     string admin_username = "admin";
@@ -97,7 +104,7 @@ bool login(bool &admin)
 
     while (true)
     {
-        system("clear");
+        system("cls");
         header_tabel("LOGIN SISTEM PARKIR WOX-MALL");
         cout << "| 1. Admin" << setw(50) << right << "|" << endl;
         cout << "| 2. Staff" << setw(50) << right << "|" << endl;
@@ -149,22 +156,24 @@ bool login(bool &admin)
     }
 }
 
+// validasi plat nomor kendaraan menggunakan regex / regular expression
 bool validasi_plat(string plat)
 {
     regex regex_plat(R"(^\s*[a-zA-Z]{1,2}\s+\d{1,4}\s*[a-zA-Z]{0,3}\s*$)");
     return regex_match(plat, regex_plat);
 }
 
+// hitung waktu parkir dalam jam menggunakan pembulatan ke atas
 int hitung_waktu_parkir(time_t awal, time_t akhir)
 {
-    double total_detik = difftime(akhir, awal);
-    double total_jam = total_detik / 3600.0;
-    return (total_jam <= 0) ? 0 : static_cast<int>(ceil(total_jam));
+    int detik = akhir - awal;
+    int jam = (detik + 3599) / 3600; // pembulatan ke atas
+    return jam > 0 ? jam : 0;
 }
 
 time_t waktu_sekarang()
 {
-    return time(nullptr);
+    return time(0);
 }
 
 string format_waktu(time_t time)
@@ -311,7 +320,7 @@ void menu_catat_kendaraan_parkir()
     time_t waktu = waktu_sekarang();
     simpan_data_parkir({plat, lower(jenis) == "mobil" ? "Mobil" : "Motor", waktu});
 
-    system("clear");
+    system("cls");
     header_tabel("CATAT KENDARAAN PARKIR");
     string jenis_kapital = lower(jenis) == "mobil" ? "Mobil" : "Motor";
     cout << "| " << setw(57) << left << ("Berhasil mencatat kendaraan (" + jenis_kapital + "): " + plat) << "|" << endl;
@@ -351,6 +360,7 @@ void menu_bayar_kendaraan_parkir()
         {
             found = true;
 
+            // cek member
             ifstream file(FILE_MEMBER);
             string line;
             while (getline(file, line))
@@ -363,15 +373,16 @@ void menu_bayar_kendaraan_parkir()
             }
             file.close();
 
-            system("clear");
+            system("cls");
             header_tabel("STRUK PEMBAYARAN PARKIR");
 
             int harga_parkir = hitung_harga_parkir(kendaraan.jenis, kendaraan.waktu, member);
+            int diskon = 0;
 
-            int diskon;
             if (member)
             {
                 diskon = harga_parkir * 0.2;
+                harga_parkir -= diskon; // aplikasikan diskon
             }
 
             baris_tabel("Plat Nomor", kendaraan.plat);
@@ -379,66 +390,62 @@ void menu_bayar_kendaraan_parkir()
             baris_tabel("Waktu Masuk", format_waktu(kendaraan.waktu));
             baris_tabel("Waktu Keluar", format_waktu(waktu_sekarang()));
             baris_tabel("Status Member", member ? "Ya" : "Tidak");
-            baris_tabel("Harga Parkir", "Rp " + to_string(harga_parkir));
+            baris_tabel("Harga Parkir", "Rp " + to_string(harga_parkir + diskon)); // harga sebelum diskon
             if (member)
             {
                 baris_tabel("Diskon Member", "Rp " + to_string(diskon));
-                harga_parkir -= harga_parkir * 0.2; // member diskon 20%
             }
             garis();
             cout << "| " << setw(20) << left << "Total Harga" << ": Rp " << setw(32) << left << harga_parkir << "|" << endl;
             garis();
 
+            // input pembayaran
             string input;
-            cout << "| Masukkan jumlah uang (cash) [q untuk quit]: Rp ";
-            cin >> input;
+            int uang_pelanggan = 0;
 
-            if (lower(input) == "q")
-                return;
-
-            int uang_pelanggan;
-            stringstream ss(input);
-            ss >> uang_pelanggan;
-
-            if (ss.fail())
+            while (true) // loop sampai uang cukup
             {
-                cout << "| Input tidak valid." << endl;
-                return;
-            }
-
-            while (uang_pelanggan < harga_parkir)
-            {
-                cout << "| " << setw(58) << left << "Uang tidak cukup." << "|" << endl;
-                cout << "| Masukkan jumlah uang (cash): Rp ";
+                cout << "| Masukkan jumlah uang (cash) [q untuk quit]: Rp ";
                 cin >> input;
+
                 if (lower(input) == "q")
                     return;
 
-                int uang_pelanggan;
                 stringstream ss(input);
                 ss >> uang_pelanggan;
 
                 if (ss.fail())
                 {
-                    cout << "| Input tidak valid." << endl;
-                    return;
+                    cout << "| " << setw(58) << left << "Input tidak valid." << "|" << endl;
+                    continue;
                 }
 
-                if (uang_pelanggan > harga_parkir)
+                if (uang_pelanggan >= harga_parkir)
                 {
-                    cout << "| " << setw(20) << left << "Kembalian" << ": Rp " << setw(32) << left << (uang_pelanggan - harga_parkir) << "|" << endl;
+                    break;
                 }
-
-                hapus_data_parkir(plat);
-                garis();
-                cout << "|" << center("TERIMA KASIH") << "|" << endl;
-                cout << "|" << center("Semoga pelayanan kami memuaskan.") << "|" << endl;
-                garis();
-                lanjut();
-                return;
+                else
+                {
+                    cout << "| " << setw(58) << left << "Uang tidak cukup." << "|" << endl;
+                }
             }
+
+            if (uang_pelanggan > harga_parkir)
+            {
+                cout << "| " << setw(20) << left << "Kembalian" << ": Rp " << setw(32) << left << (uang_pelanggan - harga_parkir) << "|" << endl;
+            }
+
+            hapus_data_parkir(plat);
+            garis();
+            cout << "|" << center("TERIMA KASIH") << "|" << endl;
+            cout << "|" << center("Semoga pelayanan kami memuaskan.") << "|" << endl;
+            garis();
+            cin.ignore();
+            lanjut();
+            return;
         }
     }
+
     if (!found)
     {
         cout << "| " << setw(57) << left << ("Kendaraan " + upper(plat) + " tidak ditemukan.") << "|" << endl;
@@ -644,7 +651,7 @@ int main()
     char pil;
     while (true)
     {
-        system("clear");
+        system("cls");
         garis(60, '=');
         cout << "|" << center("SISTEM PARKIR WOX-MALL") << "|" << endl;
         garis(60, '=');
@@ -700,7 +707,7 @@ int main()
             }
             break;
         case '0':
-            system("clear");
+            system("cls");
             garis(60, '=');
             cout << "|" << center("TERIMA KASIH") << "|" << endl;
             cout << "|" << center("Telah menggunakan sistem parkir WOX-MALL.") << "|" << endl;
