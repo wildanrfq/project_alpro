@@ -23,6 +23,7 @@ struct Kendaraan
 
 string FILE_PARKIR = "data_parkir.txt";
 string FILE_MEMBER = "data_member.txt";
+string FILE_PENDAPATAN = "data_pendapatan.txt";
 
 #pragma endregion
 
@@ -96,66 +97,6 @@ void baris_tabel(const string &label, const string &value, int width = 60)
 
 // batas fungsi fungsi untuk menghias output
 
-bool login(bool &admin)
-{
-    string admin_username = "admin";
-    string admin_password = "admin";
-    char pil;
-
-    while (true)
-    {
-        system("cls");
-        header_tabel("LOGIN SISTEM PARKIR WOX-MALL");
-        cout << "| 1. Admin" << setw(50) << right << "|" << endl;
-        cout << "| 2. Staff" << setw(50) << right << "|" << endl;
-        garis(60, '=');
-        cout << "| Login sebagai (1/2): ";
-        cin >> pil;
-        cin.ignore();
-
-        if (pil == '1')
-        {
-
-            string username, password;
-
-            cout << "| Username: ";
-            getline(cin, username);
-
-            cout << "| Password: ";
-            getline(cin, password);
-
-            if (username == admin_username && password == admin_password)
-            {
-                admin = true;
-                cout << "|" << center("Berhasil login sebagai admin.") << "|" << endl;
-                garis();
-                sleep(1);
-                return true;
-            }
-            else
-            {
-                cout << "|" << center("Username atau password salah.") << "|" << endl;
-                garis();
-                lanjut();
-            }
-        }
-        else if (pil == '2')
-        {
-            admin = false;
-            cout << "|" << center("Berhasil login sebagai staff.") << "|" << endl;
-            garis();
-            sleep(1);
-            return true;
-        }
-        else
-        {
-            cout << "|" << center("Pilihan yang anda masukkan tidak valid.") << "|" << endl;
-            garis();
-            lanjut();
-        }
-    }
-}
-
 // validasi plat nomor kendaraan menggunakan regex / regular expression
 bool validasi_plat(string plat)
 {
@@ -176,6 +117,7 @@ time_t waktu_sekarang()
     return time(0);
 }
 
+// fungsi untuk memformat waktu ke format yang user-friendly
 string format_waktu(time_t time)
 {
     tm *local_time = localtime(&time);
@@ -267,9 +209,104 @@ int hitung_harga_parkir(const string &jenis, time_t waktu_parkir, bool member)
     int total_harga = harga_pertama + (harga_pertama * (total_jam - 1));
     return total_harga;
 }
+
+void catat_laporan_pendapatan(string jenis, int harga)
+{
+    fstream file(FILE_PENDAPATAN, ios::in | ios::out);
+    vector<string> lines;
+    string line;
+    bool found = false;
+
+    while (getline(file, line))
+    {
+        string current_jenis, jumlah_str, harga_str;
+        istringstream iss(line);
+
+        if (getline(iss, current_jenis, '|') &&
+            getline(iss, jumlah_str, '|') &&
+            getline(iss, harga_str))
+        {
+            if (current_jenis == jenis)
+            {
+                int jumlah = stoi(jumlah_str) + 1;
+                int total_harga = stoi(harga_str) + harga;
+                line = jenis + "|" + to_string(jumlah) + "|" + to_string(total_harga);
+            }
+        }
+        lines.push_back(line);
+    }
+
+    file.close();
+    ofstream outfile(FILE_PENDAPATAN);
+    for (const auto &l : lines)
+    {
+        outfile << l << endl;
+    }
+}
+
 #pragma endregion
 
 #pragma region // fungsi menu
+
+bool login(bool &admin)
+{
+    string admin_username = "admin";
+    string admin_password = "admin";
+    char pil;
+
+    while (true)
+    {
+        system("cls");
+        header_tabel("LOGIN SISTEM PARKIR WOX-MALL");
+        cout << "| 1. Admin" << setw(50) << right << "|" << endl;
+        cout << "| 2. Staff" << setw(50) << right << "|" << endl;
+        garis(60, '=');
+        cout << "| Login sebagai (1/2): ";
+        cin >> pil;
+        cin.ignore();
+
+        if (pil == '1')
+        {
+
+            string username, password;
+
+            cout << "| Username: ";
+            getline(cin, username);
+
+            cout << "| Password: ";
+            getline(cin, password);
+
+            if (username == admin_username && password == admin_password)
+            {
+                admin = true;
+                cout << "|" << center("Berhasil login sebagai admin.") << "|" << endl;
+                garis();
+                sleep(1);
+                return true;
+            }
+            else
+            {
+                cout << "|" << center("Username atau password salah.") << "|" << endl;
+                garis();
+                lanjut();
+            }
+        }
+        else if (pil == '2')
+        {
+            admin = false;
+            cout << "|" << center("Berhasil login sebagai staff.") << "|" << endl;
+            garis();
+            sleep(1);
+            return true;
+        }
+        else
+        {
+            cout << "|" << center("Pilihan yang anda masukkan tidak valid.") << "|" << endl;
+            garis();
+            lanjut();
+        }
+    }
+}
 
 void menu_catat_kendaraan_parkir()
 {
@@ -436,6 +473,7 @@ void menu_bayar_kendaraan_parkir()
             }
 
             hapus_data_parkir(plat);
+            catat_laporan_pendapatan(kendaraan.jenis, harga_parkir);
             garis();
             cout << "|" << center("TERIMA KASIH") << "|" << endl;
             cout << "|" << center("Semoga pelayanan kami memuaskan.") << "|" << endl;
@@ -593,6 +631,52 @@ void menu_tampilkan_member_parkir()
     lanjut();
 }
 
+void menu_tampilkan_laporan_parkir()
+{
+    cin.ignore();
+    header_tabel("LAPORAN PENDAPATAN PARKIR");
+
+    ifstream file(FILE_PENDAPATAN);
+    if (!file.is_open())
+    {
+        cout << "| " << setw(58) << left << "Tidak ada data pendapatan." << "|" << endl;
+        garis();
+        lanjut();
+        return;
+    }
+
+    string line;
+    int total_pendapatan = 0;
+
+    while (getline(file, line))
+    {
+        string jenis, jumlah_str, harga_str;
+        istringstream iss(line);
+
+        if (getline(iss, jenis, '|') &&
+            getline(iss, jumlah_str, '|') &&
+            getline(iss, harga_str))
+        {
+            int harga = stoi(harga_str);
+
+            string kendaraan = jenis + " (" + jumlah_str + ")";
+
+            cout << "| " << setw(30) << left << kendaraan
+                 << " : Rp " << setw(21) << left << harga << "|" << endl;
+
+            total_pendapatan += harga;
+        }
+    }
+    file.close();
+
+    garis();
+    cout << "| " << setw(30) << left << "Total Pendapatan"
+         << " : Rp " << setw(21) << left << total_pendapatan << "|" << endl;
+    garis(60, '=');
+
+    lanjut();
+}
+
 void menu_hapus_daftar_parkir()
 {
     cin.ignore();
@@ -648,9 +732,9 @@ int main()
     {
     }
 
-    char pil;
     while (true)
     {
+        char pil;
         system("cls");
         garis(60, '=');
         cout << "|" << center("SISTEM PARKIR WOX-MALL") << "|" << endl;
@@ -663,10 +747,10 @@ int main()
         cout << "| 4. Tampilkan Daftar Parkir" << setw(32) << right << "|" << endl;
         cout << "| 5. Daftar Member Parkir" << setw(35) << right << "|" << endl;
         cout << "| 6. Tampilkan Member Parkir" << setw(32) << right << "|" << endl;
-
         if (admin)
         {
-            cout << "| 7. Hapus Daftar Parkir" << setw(36) << right << "|" << endl;
+            cout << "| 7. Tampilkan Laporan Parkir" << setw(31) << right << "|" << endl;
+            cout << "| 8. Hapus Daftar Parkir" << setw(36) << right << "|" << endl;
         }
 
         cout << "| 0. Keluar" << setw(49) << right << "|" << endl;
@@ -695,6 +779,19 @@ int main()
             menu_tampilkan_member_parkir();
             break;
         case '7':
+            if (admin)
+            {
+                menu_tampilkan_laporan_parkir();
+            }
+            else
+            {
+                cout << "| " << setw(58) << left << "Akses ditolak! Hanya untuk admin." << "|" << endl;
+                garis(60);
+                lanjut();
+            }
+            break;
+            break;
+        case '8':
             if (admin)
             {
                 menu_hapus_daftar_parkir();
