@@ -151,6 +151,33 @@ bool cek_kendaraan_parkir(const string &plat)
     return false;
 }
 
+int partition(vector<Kendaraan> &arr, int low, int high)
+{
+    time_t pivot = arr[high].waktu;
+    int i = low - 1;
+
+    for (int j = low; j < high; j++)
+    {
+        if (arr[j].waktu <= pivot)
+        {
+            i++;
+            swap(arr[i], arr[j]);
+        }
+    }
+    swap(arr[i + 1], arr[high]);
+    return i + 1;
+}
+
+void quick_sort(vector<Kendaraan> &arr, int low, int high)
+{
+    if (low < high)
+    {
+        int pi = partition(arr, low, high);
+        quick_sort(arr, low, pi - 1);
+        quick_sort(arr, pi + 1, high);
+    }
+}
+
 vector<Kendaraan> baca_data_parkir()
 {
     vector<Kendaraan> kendaraan_list;
@@ -171,6 +198,12 @@ vector<Kendaraan> baca_data_parkir()
         }
     }
     file.close();
+
+    if (!kendaraan_list.empty())
+    {
+        quick_sort(kendaraan_list, 0, kendaraan_list.size() - 1);
+    }
+
     return kendaraan_list;
 }
 
